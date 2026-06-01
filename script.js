@@ -98,6 +98,8 @@ const infoPanel = document.querySelector('#info-panel');
 const canvas = document.querySelector('#space-canvas');
 const ctx = canvas.getContext('2d');
 const quizPanel = document.querySelector('#quiz-panel');
+const mascotRow = document.querySelector('#mascot-row');
+const mascot = document.querySelector('.mascot');
 const mascotBubble = document.querySelector('#mascot-bubble');
 const tabButtons = [...document.querySelectorAll('.tab-button')];
 
@@ -132,12 +134,14 @@ function setTab(tab) {
   state.tab = tab;
   state.selectedChoice = null;
   state.answered = false;
+  updateMascotMode(tab);
   tabButtons.forEach((button) => button.classList.toggle('active', button.dataset.tab === tab));
   renderTab();
 }
 
 function renderTab() {
   const info = tabInfo[state.tab];
+  updateMascotMode(state.tab);
   mascotBubble.textContent = mascotLines[state.tab];
   quizPanel.hidden = state.tab !== 'quiz';
   canvas.style.display = state.tab === 'quiz' ? 'none' : 'block';
@@ -274,6 +278,7 @@ function renderMetric([label, value]) {
 
 function renderQuiz() {
   if (state.quizComplete) {
+    updateMascotMode('quiz', 'correct');
     quizPanel.innerHTML = renderFinalScore();
     quizPanel.querySelector('[data-action="reset"]').addEventListener('click', resetQuiz);
     renderMetrics();
@@ -411,6 +416,7 @@ function checkAnswer() {
     }
   }
   renderQuiz();
+  updateMascotMode('quiz', state.selectedChoice === KEPLER_QUESTIONS[state.quizIndex].answer ? 'correct' : 'wrong');
 }
 
 function moveQuiz(direction) {
@@ -436,6 +442,15 @@ function resetQuiz() {
   state.counted.clear();
   state.selectedByQuestion = {};
   renderQuiz();
+  updateMascotMode('quiz');
+}
+
+function updateMascotMode(mode, feedback = '') {
+  if (!mascotRow || !mascot) return;
+  mascotRow.dataset.mode = mode;
+  mascot.dataset.mode = mode;
+  mascot.classList.toggle('feedback-correct', feedback === 'correct');
+  mascot.classList.toggle('feedback-wrong', feedback === 'wrong');
 }
 
 function typesetMath() {

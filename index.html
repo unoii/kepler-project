@@ -14,7 +14,7 @@
   </script>
   <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
   <script defer src="questions.js"></script>
-  <script defer src="script.js?v=20260602-lab2"></script>
+  <script defer src="script.js?v=20260602-haenghaeng"></script>
 </head>
 <body>
   <div class="stars" aria-hidden="true"></div>
@@ -57,8 +57,15 @@
         </section>
       </section>
 
-      <aside class="mascot-row" aria-live="polite">
+      <aside id="mascot-row" class="mascot-row" data-mode="law1" aria-live="polite">
         <div class="mascot" aria-label="행행이">
+          <img
+            class="mascot-image"
+            src="assets/haenghaeng.png"
+            alt=""
+            onload="this.parentElement.classList.add('has-image')"
+            onerror="this.hidden=true; this.parentElement.classList.remove('has-image')"
+          >
           <span class="mascot-eye left"></span>
           <span class="mascot-eye right"></span>
           <span class="mascot-mouth"></span>
