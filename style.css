@@ -91,6 +91,12 @@ button {
   -webkit-tap-highlight-color: transparent;
 }
 
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.46;
+  transform: none;
+}
+
 .stars {
   position: fixed;
   inset: 0;
@@ -463,6 +469,46 @@ canvas {
   background: rgba(255, 127, 155, 0.16);
 }
 
+.final-score-card {
+  display: grid;
+  gap: 16px;
+}
+
+.final-score {
+  margin: 0;
+  color: var(--mint);
+  font-size: clamp(3rem, 8vw, 5.4rem);
+  font-weight: 900;
+  line-height: 1;
+}
+
+.score-list {
+  display: grid;
+  gap: 10px;
+}
+
+.score-item {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(10, 34, 58, 0.62);
+}
+
+.score-item.correct {
+  border-color: rgba(141, 255, 188, 0.34);
+}
+
+.score-item.wrong {
+  border-color: rgba(255, 127, 155, 0.34);
+}
+
+.score-item span {
+  color: var(--muted);
+  line-height: 1.45;
+}
+
 .quiz-actions {
   display: flex;
   flex-wrap: wrap;
@@ -501,9 +547,10 @@ canvas {
   align-items: center;
   gap: 16px;
   max-width: 1440px;
-  min-height: 104px;
+  min-height: 112px;
   margin: 14px auto 0;
   padding: 14px 18px;
+  overflow: visible;
 }
 
 .mascot {
@@ -557,10 +604,14 @@ canvas {
 }
 
 .speech-bubble {
+  flex: 1;
   margin: 0;
   color: var(--text);
   font-weight: 600;
   line-height: 1.55;
+  overflow: visible;
+  overflow-wrap: anywhere;
+  word-break: keep-all;
 }
 
 @keyframes rise {

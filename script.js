@@ -5,6 +5,7 @@ const state = {
   quizIndex: 0,
   selectedChoice: null,
   answered: false,
+  quizComplete: false,
   score: 0,
   counted: new Set(),
   selectedByQuestion: {},
@@ -20,7 +21,7 @@ const state = {
 };
 
 const mascotLines = {
-  law1: '태양은 타원의 중심이 아니라 초점에 있어. O와 F를 헷갈리면 안 돼!',
+  law1: '태양은 중심 O가 아니라 초점 F에 있어. 행성 좌표는 타원 위의 (a cosE, b sinE)로 생각하면 돼!',
   law2: '가까울 때 빠르고, 멀 때 느려. 그런데 같은 시간 동안 쓸린 면적은 같아!',
   law3: '거리가 커지면 주기는 훨씬 길어져. T²와 a³의 관계를 봐!',
   binary: '별 두 개가 서로를 도는 것처럼 보여도, 정확히는 공통질량중심을 중심으로 같이 움직여.',
@@ -30,10 +31,10 @@ const mascotLines = {
 const tabInfo = {
   law1: {
     title: '제1법칙: 타원 궤도의 법칙',
-    formulas: ['\\(x=a\\cos E,\\quad y=b\\sin E\\)', '\\(b=a\\sqrt{1-e^2},\\quad c=ae\\)'],
+    formulas: ['\\((a\\cos E,\\quad b\\sin E)\\)', '\\(b=a\\sqrt{1-e^2},\\quad c=ae\\)'],
     body: [
       '행성은 타원을 궤도로 공전합니다. 이때 태양은 타원의 중심이 아니라 두 초점 중 한 곳에 위치합니다.',
-      '직교좌표계에서 타원의 중심을 O로 두면 행성의 위치는 \\((x=a\\cos E,\\ y=b\\sin E)\\)로 나타낼 수 있습니다.',
+      '직교좌표계에서 타원의 중심을 O로 두면 행성의 위치는 \\((a\\cos E,\\ b\\sin E)\\)로 나타낼 수 있습니다.',
       '실제로는 태양도 완전히 정지하지 않고, 행성과 함께 공통질량중심을 중심으로 조금 움직입니다.'
     ],
     controls: [
@@ -69,7 +70,7 @@ const tabInfo = {
     title: '응용: 쌍성계와 만유인력',
     formulas: ['\\(\\frac{a^3}{P^2}=\\frac{G(m_1+m_2)}{4\\pi^2}\\)', '\\(m_1+m_2=\\frac{a^3}{P^2}M_\\odot\\)', '\\(a_1m_1=a_2m_2\\)'],
     body: [
-      '별의 질량은 저울로 잴 수 없습니다. 하지만 두 별 사이의 거리와 공전 주기를 알면 케플러 제3법칙을 이용해 쌍성계의 전체 질량을 구할 수 있습니다.',
+      '별의 질량은 저울로 잴 수 없습니다. 하지만 두 별 사이의 거리와 공전 주기를 알면 케플러 제3법칙을 이용해 두 별의 질량의 합을 구할 수 있습니다.',
       '공통질량중심에 가까운 별일수록 더 큰 질량을 가집니다. 질량이 큰 별은 더 작은 궤도를 돕니다.'
     ],
     controls: [
@@ -214,7 +215,7 @@ function renderMetrics() {
       ['짧은반지름 비율 b/a', formatNumber(Math.sqrt(1 - e * e))],
       ['초점 거리 비율 c/a', formatNumber(e)],
       ['태양 질량', `${formatNumber(state.values.sunMass)}배`],
-      ['좌표 방식', 'x=a cosE, y=b sinE']
+      ['좌표 방식', '(a cosE, b sinE)']
     ];
   } else if (state.tab === 'law2') {
     items = [
@@ -241,10 +242,18 @@ function renderMetrics() {
     items = [
       ['a', `${formatNumber(a)} AU`],
       ['P', `${formatNumber(p)} yr`],
-      ['m1 + m2', `${formatNumber(totalMass)} M☉`],
+      ['m1 + m2', `태양 질량의 ${formatNumber(totalMass)}배`],
       ['m1:m2', `${formatNumber(ratio)}:1`]
     ];
   } else if (state.tab === 'quiz') {
+    if (state.quizComplete) {
+      items = [
+        ['현재 단계', '최종 점수'],
+        ['점수', `${state.score} / ${KEPLER_QUESTIONS.length}`]
+      ];
+      metrics.innerHTML = items.map(renderMetric).join('\n');
+      return;
+    }
     items = [
       ['현재 문항', `${state.quizIndex + 1} / ${KEPLER_QUESTIONS.length}`],
       ['점수', `${state.score} / ${KEPLER_QUESTIONS.length}`]
@@ -264,12 +273,19 @@ function renderMetric([label, value]) {
 }
 
 function renderQuiz() {
+  if (state.quizComplete) {
+    quizPanel.innerHTML = renderFinalScore();
+    quizPanel.querySelector('[data-action="reset"]').addEventListener('click', resetQuiz);
+    renderMetrics();
+    return;
+  }
+
   const item = KEPLER_QUESTIONS[state.quizIndex];
   state.selectedChoice = state.selectedByQuestion[state.quizIndex] ?? null;
   state.answered = state.counted.has(state.quizIndex);
-  const progressText = state.quizIndex === KEPLER_QUESTIONS.length - 1
-    ? `마지막 문제입니다. 현재 점수는 ${state.score}점입니다.`
-    : `${state.quizIndex + 1}번 문제를 풀고 다음 문제로 넘어가세요.`;
+  const progressText = state.answered
+    ? '해설을 확인했어요. 이제 다음 단계로 넘어갈 수 있습니다.'
+    : '답을 고른 뒤 정답 확인을 눌러야 다음 문제로 넘어갈 수 있습니다.';
 
   quizPanel.innerHTML = renderQuizCard(item, progressText);
 
@@ -293,6 +309,12 @@ function renderQuizCard(item, progressText) {
   const feedback = state.answered
     ? renderFeedback(item)
     : `<p class="feedback">${progressText}</p>`;
+  const isFirst = state.quizIndex === 0;
+  const isLast = state.quizIndex === KEPLER_QUESTIONS.length - 1;
+  const checkDisabled = state.selectedChoice === null || state.answered ? ' disabled' : '';
+  const nextDisabled = state.answered ? '' : ' disabled';
+  const prevDisabled = isFirst ? ' disabled' : '';
+  const nextLabel = isLast ? '결과 보기' : '다음 문제';
 
   return [
     '<div class="quiz-card">',
@@ -303,10 +325,9 @@ function renderQuizCard(item, progressText) {
     item.choices.map(renderChoice).join('\n'),
     '  </div>',
     '  <div class="quiz-actions">',
-    '    <button class="secondary-button" type="button" data-action="prev">이전 문제</button>',
-    '    <button class="primary-button" type="button" data-action="check">정답 확인</button>',
-    '    <button class="secondary-button" type="button" data-action="next">다음 문제</button>',
-    '    <button class="secondary-button" type="button" data-action="reset">다시 풀기</button>',
+    `    <button class="secondary-button" type="button" data-action="prev"${prevDisabled}>이전 문제</button>`,
+    `    <button class="primary-button" type="button" data-action="check"${checkDisabled}>정답 확인</button>`,
+    `    <button class="secondary-button" type="button" data-action="next"${nextDisabled}>${nextLabel}</button>`,
     '  </div>',
     feedback,
     '</div>'
@@ -334,17 +355,48 @@ function renderFeedback(item) {
   const message = isCorrect
     ? '좋아! 핵심 개념을 제대로 잡았어.'
     : '괜찮아. 다시 그림을 보면서 태양, 초점, 면적, 주기의 관계를 확인해 보자.';
-  const finalScore = state.counted.size === KEPLER_QUESTIONS.length
-    ? `<p><strong>최종 점수: ${state.score} / ${KEPLER_QUESTIONS.length}</strong></p>`
-    : '';
-
   return [
     `<div class="feedback ${isCorrect ? 'good' : 'bad'}">`,
     `  <strong>${message}</strong>`,
     `  <p>정답: ${item.answer + 1}번</p>`,
     `  <p>${item.explanation}</p>`,
     `  <p>관련 법칙: ${item.law}</p>`,
-    finalScore,
+    '</div>'
+  ].join('\n');
+}
+
+function renderFinalScore() {
+  const total = KEPLER_QUESTIONS.length;
+  const percent = Math.round((state.score / total) * 100);
+  const message = percent >= 80
+    ? '케플러 법칙의 핵심 관계를 잘 연결했어요.'
+    : '틀린 문항의 해설을 다시 읽고 시뮬레이션으로 한 번 더 확인해 봅시다.';
+
+  return [
+    '<div class="quiz-card final-score-card">',
+    '  <p class="eyebrow">Kepler Learning Simulation</p>',
+    '  <h2>최종 점수</h2>',
+    `  <p class="final-score">${state.score} / ${total}</p>`,
+    `  <p class="quiz-situation">${message}</p>`,
+    '  <div class="score-list">',
+    KEPLER_QUESTIONS.map(renderScoreItem).join('\n'),
+    '  </div>',
+    '  <div class="quiz-actions">',
+    '    <button class="primary-button" type="button" data-action="reset">다시 풀기</button>',
+    '  </div>',
+    '</div>'
+  ].join('\n');
+}
+
+function renderScoreItem(item, index) {
+  const selected = state.selectedByQuestion[index];
+  const isCorrect = selected === item.answer;
+  const selectedText = selected === undefined ? '미응답' : `${selected + 1}번`;
+
+  return [
+    `<div class="score-item ${isCorrect ? 'correct' : 'wrong'}">`,
+    `  <strong>${index + 1}. ${item.title.replace(/^문제 \\d+\\.\\s*/, '')}</strong>`,
+    `  <span>${isCorrect ? '정답' : '오답'} · 선택: ${selectedText} · 정답: ${item.answer + 1}번</span>`,
     '</div>'
   ].join('\n');
 }
@@ -362,6 +414,13 @@ function checkAnswer() {
 }
 
 function moveQuiz(direction) {
+  if (direction > 0 && !state.answered) return;
+  if (direction > 0 && state.quizIndex === KEPLER_QUESTIONS.length - 1) {
+    state.quizComplete = true;
+    renderQuiz();
+    return;
+  }
+
   state.quizIndex = Math.max(0, Math.min(KEPLER_QUESTIONS.length - 1, state.quizIndex + direction));
   state.selectedChoice = state.selectedByQuestion[state.quizIndex] ?? null;
   state.answered = state.counted.has(state.quizIndex);
@@ -372,6 +431,7 @@ function resetQuiz() {
   state.quizIndex = 0;
   state.selectedChoice = null;
   state.answered = false;
+  state.quizComplete = false;
   state.score = 0;
   state.counted.clear();
   state.selectedByQuestion = {};
@@ -643,7 +703,7 @@ function drawBinary() {
   drawPoint(cx, cy, 7, '#eef9ff', 'O', 10, -12);
   drawPoint(x1, y1, 18 + Math.min(10, m1 * 2), '#ffd36a', 'm₁');
   drawPoint(x2, y2, 16, '#c6a7ff', 'm₂');
-  drawCaption(`m1 + m2 = a³/P² = ${formatNumber(totalMass)} M☉`, 24, 34);
+  drawCaption(`두 별의 질량의 합 = a³/P² = 태양 질량의 ${formatNumber(totalMass)}배`, 24, 34);
   drawCaption('질량이 큰 별 m₁은 공통질량중심에 더 가까운 작은 궤도를 돕니다.', 24, 60);
 }
 
