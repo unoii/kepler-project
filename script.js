@@ -140,14 +140,7 @@ function renderTab() {
   mascotBubble.textContent = mascotLines[state.tab];
   quizPanel.hidden = state.tab !== 'quiz';
   canvas.style.display = state.tab === 'quiz' ? 'none' : 'block';
-
-  infoPanel.innerHTML = `
-    <h2>${info.title}</h2>
-    ${info.body.map((text) => `<p>${text}</p>`).join('')}
-    ${info.formulas.map((formula) => `<div class="formula">${formula}</div>`).join('')}
-    ${renderControls(info.controls)}
-    <div id="metrics" class="metric-grid"></div>
-  `;
+  infoPanel.innerHTML = renderInfoPanel(info);
 
   infoPanel.querySelectorAll('input[type="range"]').forEach((input) => {
     input.addEventListener('input', (event) => {
@@ -167,21 +160,39 @@ function renderTab() {
   typesetMath();
 }
 
+function renderInfoPanel(info) {
+  const paragraphs = info.body.map((text) => `<p>${text}</p>`);
+  const formulas = info.formulas.map((formula) => `<div class="formula">${formula}</div>`);
+
+  return [
+    `<h2>${info.title}</h2>`,
+    ...paragraphs,
+    ...formulas,
+    renderControls(info.controls),
+    '<div id="metrics" class="metric-grid"></div>'
+  ].join('\n');
+}
+
 function renderControls(controls) {
   if (!controls.length) return '';
-  return `
-    <div class="control-group">
-      ${controls.map((control) => `
-        <div class="control">
-          <label for="${control.key}">
-            <span>${control.label}</span>
-            <output data-output="${control.key}"></output>
-          </label>
-          <input id="${control.key}" data-key="${control.key}" type="range" min="${control.min}" max="${control.max}" step="${control.step}" value="${state.values[control.key]}">
-        </div>
-      `).join('')}
-    </div>
-  `;
+
+  return [
+    '<div class="control-group">',
+    controls.map(renderControl).join('\n'),
+    '</div>'
+  ].join('\n');
+}
+
+function renderControl(control) {
+  return [
+    '<div class="control">',
+    `  <label for="${control.key}">`,
+    `    <span>${control.label}</span>`,
+    `    <output data-output="${control.key}"></output>`,
+    '  </label>',
+    `  <input id="${control.key}" data-key="${control.key}" type="range" min="${control.min}" max="${control.max}" step="${control.step}" value="${state.values[control.key]}">`,
+    '</div>'
+  ].join('\n');
 }
 
 function updateOutputs() {
@@ -240,12 +251,16 @@ function renderMetrics() {
     ];
   }
 
-  metrics.innerHTML = items.map(([label, value]) => `
-    <div class="metric">
-      <strong>${label}</strong>
-      <span>${value}</span>
-    </div>
-  `).join('');
+  metrics.innerHTML = items.map(renderMetric).join('\n');
+}
+
+function renderMetric([label, value]) {
+  return [
+    '<div class="metric">',
+    `  <strong>${label}</strong>`,
+    `  <span>${value}</span>`,
+    '</div>'
+  ].join('\n');
 }
 
 function renderQuiz() {
@@ -256,27 +271,7 @@ function renderQuiz() {
     ? `마지막 문제입니다. 현재 점수는 ${state.score}점입니다.`
     : `${state.quizIndex + 1}번 문제를 풀고 다음 문제로 넘어가세요.`;
 
-  quizPanel.innerHTML = `
-    <div class="quiz-card">
-      <h2>${item.title}</h2>
-      <p class="quiz-situation">${item.situation}</p>
-      <p><strong>${item.question}</strong></p>
-      <div class="choices">
-        ${item.choices.map((choice, index) => `
-          <button class="choice ${choiceClass(index)}" type="button" data-choice="${index}">
-            ${index + 1}. ${choice}
-          </button>
-        `).join('')}
-      </div>
-      <div class="quiz-actions">
-        <button class="secondary-button" type="button" data-action="prev">이전 문제</button>
-        <button class="primary-button" type="button" data-action="check">정답 확인</button>
-        <button class="secondary-button" type="button" data-action="next">다음 문제</button>
-        <button class="secondary-button" type="button" data-action="reset">다시 풀기</button>
-      </div>
-      ${state.answered ? renderFeedback(item) : `<p class="feedback">${progressText}</p>`}
-    </div>
-  `;
+  quizPanel.innerHTML = renderQuizCard(item, progressText);
 
   quizPanel.querySelectorAll('[data-choice]').forEach((button) => {
     button.addEventListener('click', () => {
@@ -294,6 +289,38 @@ function renderQuiz() {
   renderMetrics();
 }
 
+function renderQuizCard(item, progressText) {
+  const feedback = state.answered
+    ? renderFeedback(item)
+    : `<p class="feedback">${progressText}</p>`;
+
+  return [
+    '<div class="quiz-card">',
+    `  <h2>${item.title}</h2>`,
+    `  <p class="quiz-situation">${item.situation}</p>`,
+    `  <p><strong>${item.question}</strong></p>`,
+    '  <div class="choices">',
+    item.choices.map(renderChoice).join('\n'),
+    '  </div>',
+    '  <div class="quiz-actions">',
+    '    <button class="secondary-button" type="button" data-action="prev">이전 문제</button>',
+    '    <button class="primary-button" type="button" data-action="check">정답 확인</button>',
+    '    <button class="secondary-button" type="button" data-action="next">다음 문제</button>',
+    '    <button class="secondary-button" type="button" data-action="reset">다시 풀기</button>',
+    '  </div>',
+    feedback,
+    '</div>'
+  ].join('\n');
+}
+
+function renderChoice(choice, index) {
+  return [
+    `    <button class="choice ${choiceClass(index)}" type="button" data-choice="${index}">`,
+    `      ${index + 1}. ${choice}`,
+    '    </button>'
+  ].join('\n');
+}
+
 function choiceClass(index) {
   const item = KEPLER_QUESTIONS[state.quizIndex];
   if (!state.answered) return state.selectedChoice === index ? 'selected' : '';
@@ -304,15 +331,22 @@ function choiceClass(index) {
 
 function renderFeedback(item) {
   const isCorrect = state.selectedChoice === item.answer;
-  return `
-    <div class="feedback ${isCorrect ? 'good' : 'bad'}">
-      <strong>${isCorrect ? '좋아! 핵심 개념을 제대로 잡았어.' : '괜찮아. 다시 그림을 보면서 태양, 초점, 면적, 주기의 관계를 확인해 보자.'}</strong>
-      <p>정답: ${item.answer + 1}번</p>
-      <p>${item.explanation}</p>
-      <p>관련 법칙: ${item.law}</p>
-      ${state.counted.size === KEPLER_QUESTIONS.length ? `<p><strong>최종 점수: ${state.score} / ${KEPLER_QUESTIONS.length}</strong></p>` : ''}
-    </div>
-  `;
+  const message = isCorrect
+    ? '좋아! 핵심 개념을 제대로 잡았어.'
+    : '괜찮아. 다시 그림을 보면서 태양, 초점, 면적, 주기의 관계를 확인해 보자.';
+  const finalScore = state.counted.size === KEPLER_QUESTIONS.length
+    ? `<p><strong>최종 점수: ${state.score} / ${KEPLER_QUESTIONS.length}</strong></p>`
+    : '';
+
+  return [
+    `<div class="feedback ${isCorrect ? 'good' : 'bad'}">`,
+    `  <strong>${message}</strong>`,
+    `  <p>정답: ${item.answer + 1}번</p>`,
+    `  <p>${item.explanation}</p>`,
+    `  <p>관련 법칙: ${item.law}</p>`,
+    finalScore,
+    '</div>'
+  ].join('\n');
 }
 
 function checkAnswer() {
