@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>도전! 케플러 법칙 이해하기</title>
+  <link rel="stylesheet" href="style.css">
+  <script>
+    window.MathJax = {
+      tex: { inlineMath: [['\\(', '\\)'], ['$', '$']] },
+      svg: { fontCache: 'global' },
+      startup: { typeset: false }
+    };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+  <script defer src="questions.js"></script>
+  <script defer src="script.js"></script>
+</head>
+<body>
+  <div class="stars" aria-hidden="true"></div>
+
+  <main class="app">
+    <section id="start-screen" class="start-screen screen active">
+      <div class="start-content">
+        <p class="eyebrow">Interactive Space Museum</p>
+        <h1>도전! 케플러 법칙 이해하기</h1>
+        <p class="subtitle">직교좌표계에서 타원 궤도, 면적 속도, 조화의 법칙을 관찰해 봅시다.</p>
+        <button id="start-btn" class="primary-button" type="button">Start</button>
+      </div>
+      <div class="orbit-preview" aria-hidden="true">
+        <span class="preview-sun"></span>
+        <span class="preview-planet"></span>
+      </div>
+    </section>
+
+    <section id="learn-screen" class="learn-screen screen" aria-label="케플러 법칙 학습 화면">
+      <header class="topbar">
+        <div class="title-box">
+          <h1>도전! 케플러 법칙 이해하기</h1>
+          <p>제1·2·3법칙을 배우고, 쌍성계와 문제 풀이로 확장해 봅시다.</p>
+        </div>
+        <button id="home-btn" class="ghost-button" type="button">처음으로</button>
+      </header>
+
+      <nav class="tabbar" aria-label="학습 탭">
+        <button class="tab-button active" type="button" data-tab="law1">제1법칙</button>
+        <button class="tab-button" type="button" data-tab="law2">제2법칙</button>
+        <button class="tab-button" type="button" data-tab="law3">제3법칙</button>
+        <button class="tab-button" type="button" data-tab="binary">쌍성계 응용</button>
+        <button class="tab-button" type="button" data-tab="quiz">문제 풀이</button>
+      </nav>
+
+      <section class="workspace">
+        <article class="info-panel" id="info-panel"></article>
+        <section class="visual-panel">
+          <canvas id="space-canvas" width="900" height="620" aria-label="케플러 법칙 시각화"></canvas>
+          <div id="quiz-panel" class="quiz-panel" hidden></div>
+        </section>
+      </section>
+
+      <aside class="mascot-row" aria-live="polite">
+        <div class="mascot" aria-label="행행이">
+          <span class="mascot-eye left"></span>
+          <span class="mascot-eye right"></span>
+          <span class="mascot-mouth"></span>
+        </div>
+        <p id="mascot-bubble" class="speech-bubble">태양은 타원의 중심이 아니라 초점에 있어. O와 F를 헷갈리면 안 돼!</p>
+      </aside>
+    </section>
+  </main>
+</body>
+</html>
