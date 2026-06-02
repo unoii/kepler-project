@@ -26,7 +26,8 @@ const state = {
     bgmEnabled: false,
     bgmVolume: 0.22,
     context: null,
-    bgm: null
+    bgm: null,
+    bgmFadeTimer: null
   }
 };
 
@@ -519,15 +520,15 @@ function playClickSfx() {
   const osc = audio.context.createOscillator();
   const gain = audio.context.createGain();
   osc.type = 'sine';
-  osc.frequency.setValueAtTime(620, now);
-  osc.frequency.exponentialRampToValueAtTime(880, now + 0.07);
+  osc.frequency.setValueAtTime(1040, now);
+  osc.frequency.exponentialRampToValueAtTime(1320, now + 0.045);
   gain.gain.setValueAtTime(0.0001, now);
-  gain.gain.exponentialRampToValueAtTime(0.08 * audio.sfxVolume, now + 0.012);
-  gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.09);
+  gain.gain.exponentialRampToValueAtTime(0.035 * audio.sfxVolume, now + 0.008);
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.055);
   osc.connect(gain);
   gain.connect(audio.context.destination);
   osc.start(now);
-  osc.stop(now + 0.1);
+  osc.stop(now + 0.06);
 }
 
 function createBgm() {
@@ -546,15 +547,44 @@ function createBgm() {
 function updateBgm() {
   const audio = state.audio;
   if (!audio.unlocked) return;
+
+  if (!audio.bgmEnabled) {
+    if (!audio.bgm) return;
+    fadeBgmVolume(0, false);
+    return;
+  }
+
   createBgm();
+  fadeBgmVolume(audio.bgmVolume, true);
+}
+
+function fadeBgmVolume(targetVolume, shouldPlay) {
+  const audio = state.audio;
   if (!audio.bgm) return;
 
-  audio.bgm.volume = audio.bgmEnabled ? audio.bgmVolume : 0;
-  if (audio.bgmEnabled) {
+  window.clearInterval(audio.bgmFadeTimer);
+
+  if (shouldPlay) {
     audio.bgm.play().catch(() => {});
-  } else {
-    audio.bgm.pause();
   }
+
+  const startVolume = audio.bgm.volume;
+  const startTime = performance.now();
+  const duration = 650;
+
+  audio.bgmFadeTimer = window.setInterval(() => {
+    const progress = Math.min((performance.now() - startTime) / duration, 1);
+    audio.bgm.volume = startVolume + (targetVolume - startVolume) * progress;
+
+    if (progress >= 1) {
+      window.clearInterval(audio.bgmFadeTimer);
+      audio.bgmFadeTimer = null;
+      audio.bgm.volume = targetVolume;
+      if (!shouldPlay) {
+        audio.bgm.pause();
+      }
+    }
+  }, 40);
 }
 
 function toggleSettingsPanel() {
@@ -604,9 +634,15 @@ function setupClickSounds() {
   document.addEventListener('click', (event) => {
     const target = event.target.closest('button, input[type="checkbox"], input[type="range"]');
     if (!target || target.disabled) return;
+    if (isBgmControl(event.target)) return;
     unlockAudio();
     playClickSfx();
   });
+}
+
+function isBgmControl(target) {
+  const row = target.closest('.switch-row, .volume-row');
+  return target === bgmToggle || target === bgmVolume || row?.contains(bgmToggle) || row?.contains(bgmVolume);
 }
 
 function typesetMath() {
