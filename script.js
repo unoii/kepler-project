@@ -46,7 +46,7 @@ const tabInfo = {
     formulas: ['\\(x=a\\cos E,\\quad y=b\\sin E\\)', '\\(b=a\\sqrt{1-e^2},\\quad c=ae\\)'],
     body: [
       '행성은 타원을 궤도로 공전합니다. 이때 태양은 타원의 중심이 아니라 두 초점 중 한 곳에 위치합니다.',
-      '편심각 \\(E\\)는 타원 위 행성의 위치를 계산하기 위한 보조각입니다.',
+      '편심 이각 \\(E\\)는 타원 위 행성의 위치를 계산하기 위한 보조각입니다.',
       '실제 방향각과는 다르지만, 시뮬레이션에서 타원 위 위치를 계산하는 데 유용합니다.',
       '질량 슬라이더는 태양이 행성보다 몇 배 무거운지 나타냅니다. 태양 질량이 커질수록 공통질량중심은 태양 가까이에 놓입니다.'
     ],
@@ -511,7 +511,7 @@ function unlockAudio() {
   state.audio.unlocked = true;
 }
 
-function playHoverSfx() {
+function playClickSfx() {
   const audio = state.audio;
   if (!audio.unlocked || !audio.sfxEnabled || !audio.context || audio.sfxVolume <= 0) return;
 
@@ -574,14 +574,12 @@ function setupAudioControls() {
   syncAudioControls();
   audioSettingsBtn.addEventListener('click', () => {
     unlockAudio();
-    playHoverSfx();
     toggleSettingsPanel();
   });
 
   sfxToggle.addEventListener('change', () => {
     unlockAudio();
     state.audio.sfxEnabled = sfxToggle.checked;
-    playHoverSfx();
   });
 
   sfxVolume.addEventListener('input', () => {
@@ -602,20 +600,12 @@ function setupAudioControls() {
   });
 }
 
-let lastHoverElement = null;
-function setupHoverSounds() {
-  document.addEventListener('pointerover', (event) => {
+function setupClickSounds() {
+  document.addEventListener('click', (event) => {
     const target = event.target.closest('button, input[type="checkbox"], input[type="range"]');
-    if (!target || target.disabled || target === lastHoverElement) return;
-    lastHoverElement = target;
-    playHoverSfx();
-  });
-
-  document.addEventListener('pointerout', (event) => {
-    const target = event.target.closest('button, input[type="checkbox"], input[type="range"]');
-    if (target && !target.contains(event.relatedTarget)) {
-      lastHoverElement = null;
-    }
+    if (!target || target.disabled) return;
+    unlockAudio();
+    playClickSfx();
   });
 }
 
@@ -929,7 +919,7 @@ tabButtons.forEach((button) => {
 window.addEventListener('resize', resizeCanvas);
 window.addEventListener('load', typesetMath);
 setupAudioControls();
-setupHoverSounds();
+setupClickSounds();
 
 renderTab();
 requestAnimationFrame(animate);
