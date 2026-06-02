@@ -14,9 +14,19 @@ const state = {
     sunMass: 12,
     areaDelta: 0.55,
     law3A: 3,
+    law3K: 1,
     binaryA: 4,
     binaryP: 2,
     binaryRatio: 3
+  },
+  audio: {
+    unlocked: false,
+    sfxEnabled: true,
+    sfxVolume: 0.45,
+    bgmEnabled: false,
+    bgmVolume: 0.22,
+    context: null,
+    bgm: null
   }
 };
 
@@ -35,11 +45,11 @@ const tabInfo = {
     body: [
       '행성은 타원을 궤도로 공전합니다. 이때 태양은 타원의 중심이 아니라 두 초점 중 한 곳에 위치합니다.',
       '직교좌표계에서 타원의 중심을 O로 두면 행성의 위치는 \\((a\\cos E,\\ b\\sin E)\\)로 나타낼 수 있습니다.',
-      '실제로는 태양도 완전히 정지하지 않고, 행성과 함께 공통질량중심을 중심으로 조금 움직입니다.'
+      '질량 슬라이더는 태양이 행성보다 몇 배 무거운지 나타냅니다. 태양 질량이 커질수록 공통질량중심은 태양 가까이에 놓입니다.'
     ],
     controls: [
       { key: 'eccentricity', label: '이심률 e', min: 0.05, max: 0.82, step: 0.01, unit: '' },
-      { key: 'sunMass', label: '태양 질량', min: 2, max: 30, step: 1, unit: '배' }
+      { key: 'sunMass', label: '태양:행성 질량비', min: 2, max: 30, step: 1, unit: ':1' }
     ]
   },
   law2: {
@@ -57,13 +67,14 @@ const tabInfo = {
   },
   law3: {
     title: '제3법칙: 조화의 법칙',
-    formulas: ['\\(\\frac{T^2}{a^3}=\\mathrm{const.}\\)'],
+    formulas: ['\\(\\frac{T^2}{a^3}=K\\)', '\\(K=1\\ \\mathrm{yr^2/AU^3}\\ \\text{(태양계 단위 기준)}\\)'],
     body: [
       '행성의 공전 주기 T의 제곱은 타원 궤도 긴반지름 a의 세제곱에 비례합니다.',
-      '즉 태양에서 멀리 있는 행성일수록 공전 주기가 훨씬 길어집니다.'
+      '태양 주위를 도는 행성을 AU와 년 단위로 나타내면 상수 K는 약 1입니다. 여기서는 K 값을 바꾸며 중심별 질량이 달라진 상황을 비교할 수 있습니다.'
     ],
     controls: [
-      { key: 'law3A', label: '긴반지름 a', min: 1, max: 8, step: 0.1, unit: ' AU' }
+      { key: 'law3A', label: '긴반지름 a', min: 1, max: 8, step: 0.1, unit: ' AU' },
+      { key: 'law3K', label: '상수 K = T²/a³', min: 0.4, max: 2.5, step: 0.05, unit: ' yr²/AU³' }
     ]
   },
   binary: {
@@ -94,6 +105,12 @@ const startScreen = document.querySelector('#start-screen');
 const learnScreen = document.querySelector('#learn-screen');
 const startBtn = document.querySelector('#start-btn');
 const homeBtn = document.querySelector('#home-btn');
+const audioSettingsBtn = document.querySelector('#audio-settings-btn');
+const audioSettingsPanel = document.querySelector('#audio-settings-panel');
+const sfxToggle = document.querySelector('#sfx-toggle');
+const sfxVolume = document.querySelector('#sfx-volume');
+const bgmToggle = document.querySelector('#bgm-toggle');
+const bgmVolume = document.querySelector('#bgm-volume');
 const infoPanel = document.querySelector('#info-panel');
 const canvas = document.querySelector('#space-canvas');
 const ctx = canvas.getContext('2d');
@@ -117,6 +134,8 @@ function normalizeAngle(angle) {
 }
 
 function showLearn() {
+  unlockAudio();
+  updateBgm();
   state.screen = 'learn';
   startScreen.classList.remove('active');
   learnScreen.classList.add('active');
@@ -218,7 +237,7 @@ function renderMetrics() {
     items = [
       ['짧은반지름 비율 b/a', formatNumber(Math.sqrt(1 - e * e))],
       ['초점 거리 비율 c/a', formatNumber(e)],
-      ['태양 질량', `${formatNumber(state.values.sunMass)}배`],
+      ['태양:행성 질량비', `${formatNumber(state.values.sunMass)}:1`],
       ['좌표 방식', '(a cosE, b sinE)']
     ];
   } else if (state.tab === 'law2') {
@@ -230,13 +249,13 @@ function renderMetrics() {
     ];
   } else if (state.tab === 'law3') {
     const a = state.values.law3A;
-    const T = Math.sqrt(a ** 3);
-    const ratio = (T * T) / (a ** 3);
+    const K = state.values.law3K;
+    const T = Math.sqrt(K * (a ** 3));
     items = [
       ['a', `${formatNumber(a)} AU`],
       ['T', `${formatNumber(T)} yr`],
-      ['T²/a³', formatNumber(ratio, 3)],
-      ['관계', 'T² ∝ a³']
+      ['K = T²/a³', `${formatNumber(K, 2)} yr²/AU³`],
+      ['태양계 기준 K', '1 yr²/AU³']
     ];
   } else if (state.tab === 'binary') {
     const a = state.values.binaryA;
@@ -453,6 +472,137 @@ function updateMascotMode(mode, feedback = '') {
   mascot.classList.toggle('feedback-wrong', feedback === 'wrong');
 }
 
+function unlockAudio() {
+  if (state.audio.unlocked) return;
+  const AudioContext = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContext) return;
+  state.audio.context = state.audio.context || new AudioContext();
+  state.audio.unlocked = true;
+  if (state.audio.context.state === 'suspended') {
+    state.audio.context.resume().catch(() => {});
+  }
+}
+
+function playHoverSfx() {
+  const audio = state.audio;
+  if (!audio.unlocked || !audio.sfxEnabled || !audio.context || audio.sfxVolume <= 0) return;
+
+  const now = audio.context.currentTime;
+  const osc = audio.context.createOscillator();
+  const gain = audio.context.createGain();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(620, now);
+  osc.frequency.exponentialRampToValueAtTime(880, now + 0.07);
+  gain.gain.setValueAtTime(0.0001, now);
+  gain.gain.exponentialRampToValueAtTime(0.08 * audio.sfxVolume, now + 0.012);
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.09);
+  osc.connect(gain);
+  gain.connect(audio.context.destination);
+  osc.start(now);
+  osc.stop(now + 0.1);
+}
+
+function createBgm() {
+  const audio = state.audio;
+  if (!audio.context || audio.bgm) return;
+
+  const context = audio.context;
+  const master = context.createGain();
+  const filter = context.createBiquadFilter();
+  const low = context.createOscillator();
+  const high = context.createOscillator();
+
+  low.type = 'sine';
+  high.type = 'triangle';
+  low.frequency.value = 196;
+  high.frequency.value = 294;
+  filter.type = 'lowpass';
+  filter.frequency.value = 900;
+  master.gain.value = 0;
+
+  low.connect(filter);
+  high.connect(filter);
+  filter.connect(master);
+  master.connect(context.destination);
+  low.start();
+  high.start();
+  audio.bgm = { master, low, high };
+}
+
+function updateBgm() {
+  const audio = state.audio;
+  if (!audio.unlocked || !audio.context) return;
+  createBgm();
+  if (!audio.bgm) return;
+
+  const target = audio.bgmEnabled ? 0.035 * audio.bgmVolume : 0;
+  const now = audio.context.currentTime;
+  audio.bgm.master.gain.cancelScheduledValues(now);
+  audio.bgm.master.gain.setTargetAtTime(target, now, 0.35);
+}
+
+function toggleSettingsPanel() {
+  const isOpening = audioSettingsPanel.hidden;
+  audioSettingsPanel.hidden = !isOpening;
+  audioSettingsBtn.setAttribute('aria-expanded', String(isOpening));
+}
+
+function syncAudioControls() {
+  sfxToggle.checked = state.audio.sfxEnabled;
+  sfxVolume.value = state.audio.sfxVolume;
+  bgmToggle.checked = state.audio.bgmEnabled;
+  bgmVolume.value = state.audio.bgmVolume;
+}
+
+function setupAudioControls() {
+  syncAudioControls();
+  audioSettingsBtn.addEventListener('click', () => {
+    unlockAudio();
+    playHoverSfx();
+    toggleSettingsPanel();
+  });
+
+  sfxToggle.addEventListener('change', () => {
+    unlockAudio();
+    state.audio.sfxEnabled = sfxToggle.checked;
+    playHoverSfx();
+  });
+
+  sfxVolume.addEventListener('input', () => {
+    unlockAudio();
+    state.audio.sfxVolume = Number(sfxVolume.value);
+  });
+
+  bgmToggle.addEventListener('change', () => {
+    unlockAudio();
+    state.audio.bgmEnabled = bgmToggle.checked;
+    updateBgm();
+  });
+
+  bgmVolume.addEventListener('input', () => {
+    unlockAudio();
+    state.audio.bgmVolume = Number(bgmVolume.value);
+    updateBgm();
+  });
+}
+
+let lastHoverElement = null;
+function setupHoverSounds() {
+  document.addEventListener('pointerover', (event) => {
+    const target = event.target.closest('button, input[type="checkbox"], input[type="range"]');
+    if (!target || target.disabled || target === lastHoverElement) return;
+    lastHoverElement = target;
+    playHoverSfx();
+  });
+
+  document.addEventListener('pointerout', (event) => {
+    const target = event.target.closest('button, input[type="checkbox"], input[type="range"]');
+    if (target && !target.contains(event.relatedTarget)) {
+      lastHoverElement = null;
+    }
+  });
+}
+
 function typesetMath() {
   if (window.MathJax?.typesetPromise) {
     window.MathJax.typesetPromise([infoPanel]).catch(() => {});
@@ -589,6 +739,7 @@ function drawLaw1() {
   drawPoint(baryX, baryY, 6, '#ff7f9b', '공통질량중심', 12, 34);
 
   drawCaption('타원의 중심 O와 태양의 위치 F가 다르다는 점을 관찰해 보세요.', 24, 34);
+  drawCaption(`질량비 태양:행성 = ${formatNumber(sunMass)}:1, 공통질량중심은 무거운 태양 쪽에 가까워집니다.`, 24, 60);
 }
 
 function drawLaw2() {
@@ -641,9 +792,11 @@ function drawLaw3() {
   const graphW = w - pad * 1.75;
   const graphH = h - pad * 1.75;
   const maxA = 8;
-  const maxY = maxA ** 3;
+  const maxK = 2.5;
+  const maxY = maxK * (maxA ** 3);
   const a = state.values.law3A;
-  const T = Math.sqrt(a ** 3);
+  const K = state.values.law3K;
+  const T = Math.sqrt(K * (a ** 3));
   const yVal = T * T;
 
   ctx.save();
@@ -662,7 +815,7 @@ function drawLaw3() {
   for (let i = 0; i <= 160; i += 1) {
     const xA = 1 + (i / 160) * (maxA - 1);
     const x = left + (xA / maxA) * graphW;
-    const y = bottom - ((xA ** 3) / maxY) * graphH;
+    const y = bottom - ((K * (xA ** 3)) / maxY) * graphH;
     if (i === 0) ctx.moveTo(x, y);
     else ctx.lineTo(x, y);
   }
@@ -679,7 +832,8 @@ function drawLaw3() {
   ctx.fillStyle = '#a8c6d9';
   ctx.font = '700 14px Paperozi, Arial';
   ctx.fillText(`T = ${formatNumber(T)} yr`, left + 18, bottom - graphH + 26);
-  ctx.fillText(`T²/a³ = ${formatNumber((T * T) / (a ** 3), 3)}`, left + 18, bottom - graphH + 50);
+  ctx.fillText(`K = T²/a³ = ${formatNumber(K, 2)} yr²/AU³`, left + 18, bottom - graphH + 50);
+  ctx.fillText('태양계 단위 기준 K = 1', left + 18, bottom - graphH + 74);
   ctx.restore();
 }
 
@@ -758,6 +912,8 @@ tabButtons.forEach((button) => {
 });
 window.addEventListener('resize', resizeCanvas);
 window.addEventListener('load', typesetMath);
+setupAudioControls();
+setupHoverSounds();
 
 renderTab();
 requestAnimationFrame(animate);
