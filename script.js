@@ -43,10 +43,11 @@ const mascotLines = {
 const tabInfo = {
   law1: {
     title: '제1법칙: 타원 궤도의 법칙',
-    formulas: ['\\((a\\cos E,\\quad b\\sin E)\\)', '\\(b=a\\sqrt{1-e^2},\\quad c=ae\\)'],
+    formulas: ['\\(x=a\\cos E,\\quad y=b\\sin E\\)', '\\(b=a\\sqrt{1-e^2},\\quad c=ae\\)'],
     body: [
       '행성은 타원을 궤도로 공전합니다. 이때 태양은 타원의 중심이 아니라 두 초점 중 한 곳에 위치합니다.',
-      '직교좌표계에서 타원의 중심을 O로 두면 행성의 위치는 \\((a\\cos E,\\ b\\sin E)\\)로 나타낼 수 있습니다.',
+      '편심각 \\(E\\)는 타원 위 행성의 위치를 계산하기 위한 보조각입니다.',
+      '실제 방향각과는 다르지만, 시뮬레이션에서 타원 위 위치를 계산하는 데 유용합니다.',
       '질량 슬라이더는 태양이 행성보다 몇 배 무거운지 나타냅니다. 태양 질량이 커질수록 공통질량중심은 태양 가까이에 놓입니다.'
     ],
     controls: [
@@ -56,15 +57,23 @@ const tabInfo = {
   },
   law2: {
     title: '제2법칙: 면적 속도 일정의 법칙',
-    formulas: ['\\(S_1=S_2=S_3\\)', '\\(M=E-e\\sin E\\)'],
+    formulas: ['\\(S_1=S_2=S_3\\)'],
     body: [
-      '태양과 행성을 연결하는 선분이 같은 시간 동안 쓸고 지나가는 면적은 일정합니다.',
-      '행성은 근일점에서 빠르고 원일점에서 느립니다.',
-      '속도는 달라지지만, 같은 시간 동안 쓸린 면적은 같습니다.'
+      '태양과 행성을 잇는 선분이 같은 시간 동안 쓸고 지나가는 면적은 일정하다.',
+      '행성은 태양에 가까울 때 더 빠르게 움직이고, 멀리 있을 때 더 느리게 움직인다.',
+      '하지만 같은 시간 동안 쓸고 지나가는 면적은 같다.'
     ],
+    advanced: {
+      title: '왜 면적 속도가 일정할까?',
+      body: [
+        '태양의 중력은 항상 태양 방향으로 작용하는 중심력이다.',
+        '그래서 행성의 각운동량이 보존되고, 그 결과 같은 시간 동안 쓸고 지나가는 면적이 일정하게 유지된다.'
+      ],
+      formulas: ['\\(\\frac{dS}{dt}=\\frac12r^2\\omega\\)', '\\(L=mr^2\\omega\\)']
+    },
     controls: [
       { key: 'eccentricity', label: '이심률 e', min: 0.05, max: 0.82, step: 0.01, unit: '' },
-      { key: 'areaDelta', label: '시간 간격 ΔM', min: 0.25, max: 0.95, step: 0.01, unit: ' rad' }
+      { key: 'areaDelta', label: '시간 간격 Δt', min: 0.25, max: 0.95, step: 0.01, unit: '' }
     ]
   },
   law3: {
@@ -194,8 +203,24 @@ function renderInfoPanel(info) {
     `<h2>${info.title}</h2>`,
     ...paragraphs,
     ...formulas,
+    renderAdvancedInfo(info.advanced),
     renderControls(info.controls),
     '<div id="metrics" class="metric-grid"></div>'
+  ].join('\n');
+}
+
+function renderAdvancedInfo(advanced) {
+  if (!advanced) return '';
+
+  const paragraphs = advanced.body.map((text) => `<p>${text}</p>`);
+  const formulas = advanced.formulas.map((formula) => `<div class="formula compact-formula">${formula}</div>`);
+
+  return [
+    '<details class="advanced-info">',
+    `  <summary>${advanced.title}</summary>`,
+    ...paragraphs,
+    ...formulas,
+    '</details>'
   ].join('\n');
 }
 
@@ -244,10 +269,10 @@ function renderMetrics() {
     ];
   } else if (state.tab === 'law2') {
     items = [
-      ['시간 간격', `${formatNumber(state.values.areaDelta)} rad`],
+      ['시간 간격', `Δt ${formatNumber(state.values.areaDelta)}`],
       ['면적 관계', 'S1 = S2 = S3'],
-      ['근일점 속도', '빠름'],
-      ['원일점 속도', '느림']
+      ['태양 가까이', '빠르게 이동'],
+      ['태양 멀리', '느리게 이동']
     ];
   } else if (state.tab === 'law3') {
     const a = state.values.law3A;
@@ -747,7 +772,7 @@ function drawLaw2() {
   drawPoint(layout.sunX, layout.sunY, 15, '#ffd36a', '태양 F');
   drawLine(layout.sunX, layout.sunY, planet.x, planet.y, 'rgba(255,211,106,0.62)', 2);
   drawPoint(planet.x, planet.y, 10, '#6be6ff', '행성');
-  drawCaption('같은 ΔM 동안 만들어진 세 영역의 면적이 같아지는 모습을 비교해 보세요.', 24, 34);
+  drawCaption('같은 시간 동안 이동 거리는 달라도 색칠된 세 면적은 같습니다.', 24, 34);
 }
 
 function drawSweptArea(layout, startM, endM, color, label) {

@@ -464,6 +464,31 @@ button:disabled {
   overflow-x: auto;
 }
 
+.compact-formula {
+  margin: 10px 0;
+  padding: 10px 12px;
+  font-size: 0.94rem;
+}
+
+.advanced-info {
+  margin: 18px 0 4px;
+  padding: 14px;
+  border: 1px solid rgba(255, 211, 106, 0.2);
+  border-radius: 8px;
+  background: rgba(255, 211, 106, 0.06);
+}
+
+.advanced-info summary {
+  cursor: pointer;
+  color: var(--gold);
+  font-weight: 800;
+}
+
+.advanced-info p {
+  margin: 12px 0 0;
+  font-size: 0.96rem;
+}
+
 .control-group {
   display: grid;
   gap: 14px;
