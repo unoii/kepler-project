@@ -27,6 +27,21 @@
         <p class="subtitle">지구과학II에서 배우는 타원 궤도, 면적 속도, 조화의 법칙을 관찰해 봅시다.</p>
         <button id="start-btn" class="primary-button" type="button">Start</button>
       </div>
+      <aside class="start-mascot" aria-label="행행이 안내">
+        <div class="mascot" aria-label="행행이">
+          <img
+            class="mascot-image"
+            src="assets/haenghaeng.png"
+            alt=""
+            onload="this.parentElement.classList.add('has-image')"
+            onerror="this.hidden=true; this.parentElement.classList.remove('has-image')"
+          >
+          <span class="mascot-eye left"></span>
+          <span class="mascot-eye right"></span>
+          <span class="mascot-mouth"></span>
+        </div>
+        <p class="speech-bubble">안녕! 행행이와 함께 케플러 법칙을 직접 실험해 보자.</p>
+      </aside>
       <div class="orbit-preview" aria-hidden="true">
         <span class="preview-sun"></span>
         <span class="preview-planet"></span>
