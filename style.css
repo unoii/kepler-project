@@ -192,6 +192,8 @@ button:disabled {
   gap: 16px;
   width: min(520px, calc(100% - 40px));
   pointer-events: none;
+  opacity: 0;
+  animation: rise 650ms ease 720ms both;
 }
 
 .start-mascot .mascot {
