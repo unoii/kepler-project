@@ -668,13 +668,13 @@ canvas {
 
 .mascot-row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 16px;
   max-width: 1440px;
   min-height: 124px;
   margin: 14px auto 0;
   padding: 14px 18px;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .mascot {
@@ -780,6 +780,7 @@ canvas {
 
 .speech-bubble {
   flex: 1;
+  min-width: 0;
   margin: 0;
   color: var(--text);
   font-weight: 600;

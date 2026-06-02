@@ -322,10 +322,10 @@ function renderQuiz() {
     });
   });
 
-  quizPanel.querySelector('[data-action="check"]').addEventListener('click', checkAnswer);
-  quizPanel.querySelector('[data-action="prev"]').addEventListener('click', () => moveQuiz(-1));
-  quizPanel.querySelector('[data-action="next"]').addEventListener('click', () => moveQuiz(1));
-  quizPanel.querySelector('[data-action="reset"]').addEventListener('click', resetQuiz);
+  quizPanel.querySelector('[data-action="check"]')?.addEventListener('click', checkAnswer);
+  quizPanel.querySelector('[data-action="prev"]')?.addEventListener('click', () => moveQuiz(-1));
+  quizPanel.querySelector('[data-action="next"]')?.addEventListener('click', () => moveQuiz(1));
+  quizPanel.querySelector('[data-action="reset"]')?.addEventListener('click', resetQuiz);
   renderMetrics();
 }
 
