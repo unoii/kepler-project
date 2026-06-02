@@ -30,6 +30,8 @@ const state = {
   }
 };
 
+const BGM_SOURCE = 'assets/bgm-interstellar.mp3';
+
 const mascotLines = {
   law1: '태양은 중심 O가 아니라 초점 F에 있어. 행성 좌표는 타원 위의 (a cosE, b sinE)로 생각하면 돼!',
   law2: '가까울 때 빠르고, 멀 때 느려. 그런데 같은 시간 동안 쓸린 면적은 같아!',
@@ -475,12 +477,13 @@ function updateMascotMode(mode, feedback = '') {
 function unlockAudio() {
   if (state.audio.unlocked) return;
   const AudioContext = window.AudioContext || window.webkitAudioContext;
-  if (!AudioContext) return;
-  state.audio.context = state.audio.context || new AudioContext();
-  state.audio.unlocked = true;
-  if (state.audio.context.state === 'suspended') {
-    state.audio.context.resume().catch(() => {});
+  if (AudioContext) {
+    state.audio.context = state.audio.context || new AudioContext();
+    if (state.audio.context.state === 'suspended') {
+      state.audio.context.resume().catch(() => {});
+    }
   }
+  state.audio.unlocked = true;
 }
 
 function playHoverSfx() {
@@ -504,41 +507,29 @@ function playHoverSfx() {
 
 function createBgm() {
   const audio = state.audio;
-  if (!audio.context || audio.bgm) return;
+  if (audio.bgm) return;
 
-  const context = audio.context;
-  const master = context.createGain();
-  const filter = context.createBiquadFilter();
-  const low = context.createOscillator();
-  const high = context.createOscillator();
-
-  low.type = 'sine';
-  high.type = 'triangle';
-  low.frequency.value = 196;
-  high.frequency.value = 294;
-  filter.type = 'lowpass';
-  filter.frequency.value = 900;
-  master.gain.value = 0;
-
-  low.connect(filter);
-  high.connect(filter);
-  filter.connect(master);
-  master.connect(context.destination);
-  low.start();
-  high.start();
-  audio.bgm = { master, low, high };
+  const bgm = new Audio(BGM_SOURCE);
+  bgm.loop = true;
+  bgm.preload = 'auto';
+  bgm.hidden = true;
+  bgm.volume = 0;
+  document.body.appendChild(bgm);
+  audio.bgm = bgm;
 }
 
 function updateBgm() {
   const audio = state.audio;
-  if (!audio.unlocked || !audio.context) return;
+  if (!audio.unlocked) return;
   createBgm();
   if (!audio.bgm) return;
 
-  const target = audio.bgmEnabled ? 0.035 * audio.bgmVolume : 0;
-  const now = audio.context.currentTime;
-  audio.bgm.master.gain.cancelScheduledValues(now);
-  audio.bgm.master.gain.setTargetAtTime(target, now, 0.35);
+  audio.bgm.volume = audio.bgmEnabled ? audio.bgmVolume : 0;
+  if (audio.bgmEnabled) {
+    audio.bgm.play().catch(() => {});
+  } else {
+    audio.bgm.pause();
+  }
 }
 
 function toggleSettingsPanel() {
